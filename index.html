@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>《夜市人蔘》YES! GINSENG ｜臺灣夜市美食3D數位桌遊</title>
 
-  <!-- Google Fonts：繁體中文襯線與黑體 -->
+  <!-- Google Fonts：繁體中文襯線、黑體與韓文 Noto Sans KR -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;800&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;800&family=Noto+Sans+TC:wght@400;600;700;800&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet" />
 
   <!-- Font Awesome 6 Free：全站唯一圖示系統 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -18,6 +18,9 @@
 <body>
   <!-- 3D 夜市桌遊主畫布 -->
   <div id="scene-3d-mount" aria-label="夜市人蔘 3D 桌遊場景"></div>
+
+  <!-- 美食小當家風格全螢幕料理發光 / 攻防特效層 -->
+  <div id="fx-stage" class="fx-stage" aria-hidden="true"></div>
 
   <!-- 頂部 HUD 資訊與功能列 -->
   <header class="top-hud">
@@ -42,33 +45,52 @@
 
     <div class="hud-actions">
       <div class="cam-group" title="切換 3D 視角">
-        <button class="icon-btn active" data-cam="default" title="標準視角">
+        <button class="icon-btn icon-only active" data-cam="default" title="標準立體視角" aria-label="標準立體視角">
           <i class="fa-solid fa-cube"></i>
         </button>
-        <button class="icon-btn" data-cam="top" title="俯視戰術視角">
-          <i class="fa-solid fa-border-all"></i>
+        <button class="icon-btn icon-only" data-cam="top" title="俯視戰術視角" aria-label="俯視戰術視角">
+          <i class="fa-solid fa-chess-board"></i>
         </button>
-        <button class="icon-btn" data-cam="cinema" title="夜市全景視角">
-          <i class="fa-solid fa-video"></i>
+        <button class="icon-btn icon-only" data-cam="cinema" title="夜市全景視角" aria-label="夜市全景視角">
+          <i class="fa-solid fa-panorama"></i>
         </button>
       </div>
-      <button class="icon-btn btn-lang-toggle" title="切換語言 / Switch Language">
-        <i class="fa-solid fa-globe"></i> <span class="lang-toggle-label">EN</span>
+
+      <!-- 中／英／韓可複選疊加翻譯切換器 -->
+      <div class="lang-overlay-group" role="group" aria-label="中英韓疊加語言切換">
+        <button type="button" class="lang-chip active" data-lang-toggle="zh" title="繁體中文（可疊加）">中</button>
+        <button type="button" class="lang-chip" data-lang-toggle="en" title="English（可疊加）">EN</button>
+        <button type="button" class="lang-chip" data-lang-toggle="ko" title="한국어（可疊加）">한</button>
+        <button type="button" class="lang-chip lang-all-chip" data-lang-all="true" title="一鍵中英韓三語全開">
+          <i class="fa-solid fa-layer-group"></i>
+        </button>
+      </div>
+
+      <button id="btn-food-guide" class="icon-btn icon-only" title="臺灣小吃文化圖鑑" aria-label="臺灣小吃文化圖鑑">
+        <i class="fa-solid fa-utensils"></i>
       </button>
-      <button id="btn-food-guide" class="icon-btn" title="臺灣小吃圖鑑">
-        <i class="fa-solid fa-utensils"></i> <span id="btn-guide-text">小吃圖鑑</span>
+      <button id="btn-rules" class="icon-btn icon-only" title="官方完整規則手冊" aria-label="官方完整規則手冊">
+        <i class="fa-solid fa-book-open"></i>
       </button>
-      <button id="btn-rules" class="icon-btn" title="店家守則">
-        <i class="fa-solid fa-book-open"></i> <span id="btn-rules-text">規則</span>
-      </button>
-      <button id="btn-toggle-log" class="icon-btn btn-toggle-log" title="戰報紀錄">
+      <button id="btn-toggle-log" class="icon-btn icon-only btn-toggle-log" title="戰報紀錄" aria-label="戰報紀錄">
         <i class="fa-solid fa-scroll"></i>
       </button>
-      <button id="btn-mute" class="icon-btn" title="音效開關">
+
+      <!-- 音樂開關 + 曲風切換（小當家 / 食神交響 / Chill Jazz Lo-Fi）純符號膠囊 -->
+      <div class="bgm-group" role="group" aria-label="背景音樂與曲風切換">
+        <button id="btn-bgm" class="icon-btn icon-only btn-bgm" title="背景音樂開關" aria-label="背景音樂開關">
+          <i class="fa-solid fa-music"></i>
+        </button>
+        <button id="btn-bgm-style" class="icon-btn icon-only btn-bgm-style style-god" title="食神降臨・氣勢交響" aria-label="切換音樂曲風">
+          <i class="fa-solid fa-crown"></i>
+        </button>
+      </div>
+
+      <button id="btn-mute" class="icon-btn icon-only" title="音效總開關" aria-label="音效總開關">
         <i class="fa-solid fa-volume-high"></i>
       </button>
-      <button id="btn-new-game" class="icon-btn" title="開新局">
-        <i class="fa-solid fa-rotate-right"></i> <span id="btn-new-text">新局</span>
+      <button id="btn-new-game" class="icon-btn icon-only" title="開新局" aria-label="開新局">
+        <i class="fa-solid fa-rotate-right"></i>
       </button>
     </div>
   </header>
@@ -133,9 +155,18 @@
     <div class="modal-card start-modal-card">
       <div class="modal-body">
         <div class="start-top-bar">
-          <button type="button" class="icon-btn btn-lang-toggle" title="切換語言 / Switch Language">
-            <i class="fa-solid fa-globe"></i> <span class="lang-toggle-label">EN</span>
-          </button>
+          <div class="start-lang-hint">
+            <i class="fa-solid fa-globe"></i>
+            <span id="start-lang-hint-text">可複選疊加中 / 英 / 韓三語同時顯示</span>
+          </div>
+          <div class="lang-overlay-group" role="group" aria-label="開局中英韓疊加語言切換">
+            <button type="button" class="lang-chip active" data-lang-toggle="zh">中</button>
+            <button type="button" class="lang-chip" data-lang-toggle="en">EN</button>
+            <button type="button" class="lang-chip" data-lang-toggle="ko">한</button>
+            <button type="button" class="lang-chip lang-all-chip" data-lang-all="true">
+              <i class="fa-solid fa-layer-group"></i> <span class="lang-all-label">三語</span>
+            </button>
+          </div>
         </div>
 
         <div class="start-hero">
@@ -150,14 +181,14 @@
             <label class="radio-tile">
               <input type="radio" name="game-mode" value="race8" checked />
               <div class="radio-box">
-                <strong><i class="fa-solid fa-coins"></i> <span id="mode-race8-title">8 元搶錢大戰（推薦）</span></strong>
+                <strong><i class="fa-solid fa-coins"></i> <span id="mode-race8-title">8 元搶錢大戰（變化規則・推薦）</span></strong>
                 <small id="mode-race8-desc">節奏明快！首位賺滿 8 元的攤販立即獲勝。</small>
               </div>
             </label>
             <label class="radio-tile">
               <input type="radio" name="game-mode" value="standard" />
               <div class="radio-box">
-                <strong><i class="fa-solid fa-trophy"></i> <span id="mode-std-title">標準街頭廚藝賽</span></strong>
+                <strong><i class="fa-solid fa-trophy"></i> <span id="mode-std-title">標準街頭廚藝賽（經典規則）</span></strong>
                 <small id="mode-std-desc">完成全部 26 道小吃結算，做最多道菜者奪冠。</small>
               </div>
             </label>
@@ -172,6 +203,7 @@
         <div class="option-section">
           <div class="option-label"><i class="fa-solid fa-user-check"></i> <span id="label-human-players">實際真人玩家人數（可選全部真人）</span></div>
           <div id="human-count-group" class="pill-choice-row"></div>
+          <div id="human-names-group" class="human-names-grid"></div>
           <div id="human-summary-text" class="human-summary-box"></div>
         </div>
       </div>
@@ -184,24 +216,28 @@
     </div>
   </div>
 
-  <!-- 通用互動彈窗（出菜確認 / 攻防反應 / 熱座交接 / 店家守則 / 小吃圖鑑 / 結算） -->
+  <!-- 通用互動彈窗（出菜確認 / 攻防反應 / 熱座交接 / 規則手冊 / 小吃圖鑑 / 結算） -->
   <div id="modal-overlay" class="overlay hidden" role="dialog" aria-modal="true">
-    <div class="modal-card">
+    <div id="modal-card" class="modal-card">
       <div id="modal-title" class="modal-header"></div>
       <div id="modal-body" class="modal-body"></div>
       <div id="modal-footer" class="modal-footer"></div>
     </div>
   </div>
 
+  <!-- 高解析度臺灣夜市小吃真實照片燈箱（支援左右切換與鍵盤瀏覽） -->
+  <div id="photo-lightbox" class="photo-lightbox hidden" role="dialog" aria-modal="true" aria-label="真實美食照片檢視器"></div>
+
   <!-- Three.js r128 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-  <!-- 遊戲腳本（含雙語系統 i18n.js） -->
+  <!-- 遊戲腳本（含三語可疊加系統 i18n.js & 美食小當家合成音樂 audio.js） -->
   <script src="js/i18n.js"></script>
   <script src="js/data.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/scene3d.js"></script>
   <script src="js/mascot.js"></script>
+  <script src="js/translator.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>

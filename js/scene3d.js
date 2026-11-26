@@ -409,11 +409,17 @@ window.NightMarket3D = (function () {
     });
   }
 
-  // 純程式繪製高解析 3D 餐點牌卡面（支援繁體中文 / English 雙語即時切換）
+  // 純程式繪製高解析 3D 餐點牌卡面（支援繁體中文 / English / 한국어 三語疊加即時切換）
   function createOrderCardTexture(order, canCook) {
-    const lang = window.I18N ? window.I18N.getLang() : 'zh';
-    const isEn = lang === 'en';
-    const key = `order_${order.id}_${canCook ? '1' : '0'}_${lang}`;
+    const activeLangs = window.I18N ? window.I18N.getActiveLangs() : ['zh'];
+    const primary = activeLangs[0] || 'zh';
+    const isEn = primary === 'en';
+    const isKo = primary === 'ko';
+    const hasZh = activeLangs.includes('zh');
+    const hasEn = activeLangs.includes('en');
+    const hasKo = activeLangs.includes('ko');
+    const langKey = activeLangs.join('_');
+    const key = `order_${order.id}_${canCook ? '1' : '0'}_${langKey}`;
     if (textureCache.has(key)) return textureCache.get(key);
 
     const canvas = document.createElement('canvas');
@@ -459,6 +465,11 @@ window.NightMarket3D = (function () {
     if (isEn) {
       ctx.font = 'bold 52px "Noto Serif TC", serif';
       ctx.fillText(`$${order.price}`, 22, 74);
+    } else if (isKo) {
+      ctx.font = 'bold 52px "Noto Sans KR", sans-serif';
+      ctx.fillText(String(order.price), 26, 74);
+      ctx.font = 'bold 20px "Noto Sans KR", sans-serif';
+      ctx.fillText('원', 64, 54);
     } else {
       ctx.font = 'bold 58px "Noto Serif TC", serif';
       ctx.fillText(String(order.price), 28, 76);
@@ -476,10 +487,72 @@ window.NightMarket3D = (function () {
     ctx.lineTo(123, 178);
     ctx.stroke();
 
-    // 4. 菜名與拼音
-    if (isEn) {
+    // 4. 菜名與多語疊加 + 拼音
+    if (hasZh) {
+      const chars = Array.from(order.name);
+      const nameSize = chars.length >= 5 ? 28 : chars.length === 4 ? 32 : 38;
+      const stepY = chars.length >= 5 ? 31 : chars.length === 4 ? 36 : 44;
       ctx.fillStyle = '#24211d';
-      ctx.font = 'bold 23px "Noto Sans TC", sans-serif';
+      ctx.font = `bold ${nameSize}px "Noto Serif TC", serif`;
+      ctx.textAlign = 'center';
+      chars.forEach((ch, idx) => {
+        ctx.fillText(ch, 160, 58 + idx * stepY);
+      });
+
+      ctx.textAlign = 'left';
+      let sideY = 54;
+      ctx.fillStyle = '#6e6456';
+      ctx.font = '600 14px sans-serif';
+      const pinyinText = order.taiwanese ? `${order.pinyin} *` : order.pinyin;
+      ctx.fillText(pinyinText, 190, sideY);
+      sideY += 20;
+
+      if (order.taiwanese) {
+        ctx.fillStyle = '#b55638';
+        ctx.font = 'bold 12px "Noto Sans TC", sans-serif';
+        ctx.fillText('臺語發音', 190, sideY);
+        sideY += 20;
+      }
+      if (hasEn) {
+        ctx.fillStyle = '#3c4a63';
+        ctx.font = '700 13px sans-serif';
+        const enParts = order.en.length > 16 ? [order.en.slice(0, 16), order.en.slice(16, 32)] : [order.en];
+        enParts.forEach((line) => {
+          ctx.fillText(line.trim(), 190, sideY);
+          sideY += 16;
+        });
+        sideY += 4;
+      }
+      if (hasKo && order.ko) {
+        ctx.fillStyle = '#7d3a5c';
+        ctx.font = '700 13px "Noto Sans KR", sans-serif';
+        ctx.fillText(order.ko.slice(0, 12), 190, sideY);
+        if (order.ko.length > 12) {
+          ctx.fillText(order.ko.slice(12, 24), 190, sideY + 16);
+        }
+      }
+    } else if (isKo) {
+      ctx.fillStyle = '#24211d';
+      ctx.font = 'bold 21px "Noto Sans KR", sans-serif';
+      ctx.textAlign = 'left';
+      const koTitle = order.ko || order.en;
+      ctx.fillText(koTitle.slice(0, 10), 136, 62);
+      if (koTitle.length > 10) {
+        ctx.fillText(koTitle.slice(10, 20), 136, 90);
+      }
+      let sideY = koTitle.length > 10 ? 118 : 96;
+      if (hasEn) {
+        ctx.fillStyle = '#3c4a63';
+        ctx.font = '700 13px sans-serif';
+        ctx.fillText(order.en.slice(0, 22), 136, sideY);
+        sideY += 20;
+      }
+      ctx.fillStyle = '#6e6456';
+      ctx.font = '600 14px sans-serif';
+      ctx.fillText(`${order.name} · ${order.pinyin}`, 136, sideY);
+    } else {
+      ctx.fillStyle = '#24211d';
+      ctx.font = 'bold 22px "Noto Sans TC", sans-serif';
       ctx.textAlign = 'left';
       const words = order.en.split(' ');
       let line1 = words[0] || '';
@@ -488,41 +561,24 @@ window.NightMarket3D = (function () {
         line1 = words[0] + ' ' + words[1];
         line2 = words.slice(2).join(' ');
       }
-      ctx.fillText(line1, 138, 64);
-      if (line2) ctx.fillText(line2, 138, 94);
+      ctx.fillText(line1, 136, 62);
+      if (line2) ctx.fillText(line2, 136, 90);
 
+      let sideY = line2 ? 118 : 96;
+      if (hasKo && order.ko) {
+        ctx.fillStyle = '#7d3a5c';
+        ctx.font = '700 14px "Noto Sans KR", sans-serif';
+        ctx.fillText(order.ko.slice(0, 15), 136, sideY);
+        sideY += 20;
+      }
       ctx.fillStyle = '#6e6456';
-      ctx.font = '600 15px sans-serif';
-      ctx.fillText(`${order.name} · ${order.pinyin}`, 138, 128);
+      ctx.font = '600 14px sans-serif';
+      ctx.fillText(`${order.name} · ${order.pinyin}`, 136, sideY);
       if (order.taiwanese) {
         ctx.fillStyle = '#b55638';
         ctx.font = 'bold 12px sans-serif';
-        ctx.fillText('* Taiwanese Pronunciation', 138, 150);
+        ctx.fillText('* Taiwanese Pronunciation', 136, sideY + 18);
       }
-    } else {
-      const chars = Array.from(order.name);
-      const nameSize = chars.length >= 5 ? 28 : chars.length === 4 ? 32 : 38;
-      const stepY = chars.length >= 5 ? 31 : chars.length === 4 ? 36 : 44;
-      ctx.fillStyle = '#24211d';
-      ctx.font = `bold ${nameSize}px "Noto Serif TC", serif`;
-      ctx.textAlign = 'center';
-      chars.forEach((ch, idx) => {
-        ctx.fillText(ch, 164, 58 + idx * stepY);
-      });
-
-      ctx.fillStyle = '#6e6456';
-      ctx.font = '600 15px sans-serif';
-      ctx.textAlign = 'left';
-      const pinyinText = order.taiwanese ? `${order.pinyin} *` : order.pinyin;
-      ctx.fillText(pinyinText, 194, 58);
-      if (order.taiwanese) {
-        ctx.fillStyle = '#b55638';
-        ctx.font = 'bold 12px "Noto Sans TC", sans-serif';
-        ctx.fillText('臺語發音', 194, 78);
-      }
-      ctx.fillStyle = '#8c7f6c';
-      ctx.font = '600 11px sans-serif';
-      ctx.fillText(order.en.slice(0, 20), 194, 102);
     }
 
     // 5. 左側招牌「半圓扇形食材色塊」
@@ -557,17 +613,18 @@ window.NightMarket3D = (function () {
       const tx = pieX + Math.cos(mid) * (pieR * 0.64);
       const ty = pieY + Math.sin(mid) * (pieR * 0.64);
       ctx.fillStyle = '#ffffff';
-      ctx.font = isEn ? 'bold 12px sans-serif' : 'bold 15px "Noto Sans TC", sans-serif';
+      ctx.font = isEn ? 'bold 12px sans-serif' : 'bold 15px "Noto Sans TC", "Noto Sans KR", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(isEn ? meta.shortEn : meta.short, tx, ty);
+      const shortTxt = isEn ? meta.shortEn : isKo ? meta.shortKo : meta.short;
+      ctx.fillText(shortTxt, tx, ty);
     });
     ctx.textBaseline = 'alphabetic';
 
     ctx.fillStyle = '#5c5346';
-    ctx.font = 'bold 13px "Noto Sans TC", sans-serif';
+    ctx.font = 'bold 13px "Noto Sans TC", "Noto Sans KR", sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(isEn ? 'ING' : '食材', 12, pieY - pieR - 12);
+    ctx.fillText(window.I18N ? window.I18N.t('card3dIngLabel') : '食材', 12, pieY - pieR - 12);
     ctx.font = '600 11px sans-serif';
     ctx.fillText('INGREDIENT', 10, pieY + pieR + 20);
 
@@ -615,10 +672,11 @@ window.NightMarket3D = (function () {
       ctx.stroke();
 
       ctx.fillStyle = ing.dark;
-      ctx.font = isEn ? 'bold 12px sans-serif' : 'bold 14px "Noto Sans TC", sans-serif';
+      ctx.font = isEn ? 'bold 12px sans-serif' : 'bold 14px "Noto Sans TC", "Noto Sans KR", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(isEn ? ing.shortEn : ing.short, ix, iy);
+      const shortTxt = isEn ? ing.shortEn : isKo ? ing.shortKo : ing.short;
+      ctx.fillText(shortTxt, ix, iy);
     });
     ctx.textBaseline = 'alphabetic';
 
@@ -644,9 +702,9 @@ window.NightMarket3D = (function () {
       ctx.strokeRect(16, 452, 308, 42);
 
       ctx.fillStyle = '#ffd97d';
-      ctx.font = 'bold 20px "Noto Sans TC", sans-serif';
+      ctx.font = 'bold 19px "Noto Sans TC", "Noto Sans KR", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(isEn ? 'Ready! Click to Cook' : '食材充足！點擊立即出菜', 170, 480);
+      ctx.fillText(window.I18N ? window.I18N.t('card3dReady') : '食材充足！點擊立即出菜', 170, 480);
     } else {
       ctx.strokeStyle = '#d4c3a1';
       ctx.lineWidth = 8;
@@ -849,26 +907,41 @@ window.NightMarket3D = (function () {
     });
   }
 
-  // 特效：出菜金色粒子噴發
+  // 特效：出菜金色粒子噴發（美食小當家「揭蓋發光！」雙重光環與上升金芒）
   function burstCookEffect(orderUid) {
     const target = orderMeshes.find((m) => m.userData.orderUid === orderUid);
     const origin = target ? target.position.clone() : new THREE.Vector3(0, 0.5, 1.4);
-    spawnParticles(origin, '#ffd36e', 28, 3.6);
+    spawnParticles(origin, '#ffd36e', 38, 4.4);
+    spawnParticles(origin, '#fff5cc', 18, 5.6);
     spawnWaveRing(origin, '#ffd36e');
+    setTimeout(() => spawnWaveRing(origin, '#fff0a8'), 120);
   }
 
   // 特效：攻防紅色衝擊粒子
   function burstAttackEffect() {
     const origin = new THREE.Vector3(0, 0.7, 0);
-    spawnParticles(origin, '#ff4d4d', 30, 4.4);
+    spawnParticles(origin, '#ff4d4d', 36, 4.8);
+    spawnParticles(origin, '#ff9f43', 16, 3.8);
     spawnWaveRing(origin, '#ff4d4d');
   }
 
-  // 特效：人蔘 / 佛跳牆金色大波紋
+  // 特效：防禦金鐘罩藍色波紋
+  function burstDefenseEffect() {
+    const origin = new THREE.Vector3(0, 0.55, 0.6);
+    spawnParticles(origin, '#5aa3e8', 32, 4.2);
+    spawnParticles(origin, '#bfe2ff', 16, 3.6);
+    spawnWaveRing(origin, '#5aa3e8');
+    setTimeout(() => spawnWaveRing(origin, '#bfe2ff'), 110);
+  }
+
+  // 特效：人蔘 / 佛跳牆金色大波紋與閃耀金龍捲
   function burstGinsengEffect() {
     const origin = new THREE.Vector3(0, 0.4, 0.8);
-    spawnParticles(origin, '#ffe17d', 42, 5.2);
+    spawnParticles(origin, '#ffe17d', 56, 5.8);
+    spawnParticles(origin, '#ffaa22', 28, 4.5);
     spawnWaveRing(origin, '#ffe17d');
+    setTimeout(() => spawnWaveRing(origin, '#ffaa22'), 110);
+    setTimeout(() => spawnWaveRing(origin, '#fff6cc'), 220);
   }
 
   function spawnParticles(origin, colorHex, count, speed) {
@@ -1109,6 +1182,7 @@ window.NightMarket3D = (function () {
     refreshLanguage,
     burstCookEffect,
     burstAttackEffect,
+    burstDefenseEffect,
     burstGinsengEffect
   };
 })();
