@@ -3490,3 +3490,49 @@ body.fx-shake {
     height: 165px;
   }
 }
+
+
+/* 60 秒介紹影片按鈕與播放器彈窗樣式 */
+.btn-promo-video {
+  color: var(--gold-bright);
+  border-color: rgba(255, 217, 125, 0.55);
+}
+
+.btn-promo-video:hover {
+  background: rgba(230, 193, 103, 0.24);
+  box-shadow: 0 0 12px rgba(255, 217, 125, 0.35);
+}
+
+.start-footer-stack {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.start-promo-btn {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 13px;
+  border: 1px solid rgba(230, 193, 103, 0.45);
+  background: rgba(230, 193, 103, 0.12);
+  color: var(--gold-bright);
+}
+
+.start-promo-btn:hover {
+  background: rgba(230, 193, 103, 0.24);
+}
+
+.promo-video-wrap {
+  width: 100%;
+  background: #070a12;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1.5px solid rgba(230, 193, 103, 0.45);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+.promo-video-el {
+  width: 100%;
+  max-height: 64vh;
+  display: block;
+  background: #000;
+}

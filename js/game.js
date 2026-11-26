@@ -59,6 +59,8 @@ window.NightMarketGame = (function () {
     el.btnMute = document.getElementById('btn-mute');
     el.btnFoodGuide = document.getElementById('btn-food-guide');
     el.btnRules = document.getElementById('btn-rules');
+    el.btnPromoVideo = document.getElementById('btn-promo-video');
+    el.btnStartPromo = document.getElementById('btn-start-promo');
     el.btnNewGame = document.getElementById('btn-new-game');
     el.discardBanner = document.getElementById('discard-banner');
     el.modalOverlay = document.getElementById('modal-overlay');
@@ -233,6 +235,7 @@ window.NightMarketGame = (function () {
       'mode-std-desc': tStack('modeStdDesc'),
       'label-total-players': tStack('totalPlayersLabel', null, { inline: true }),
       'label-human-players': tStack('humanPlayersLabel', null, { inline: true }),
+      'btn-start-promo-text': tStack('btnPromoVideo', null, { inline: true, sep: ' / ' }),
       'btn-start-text': tStack('btnStartGame', null, { inline: true })
     };
     Object.entries(stackMap).forEach(([id, html]) => {
@@ -246,6 +249,7 @@ window.NightMarketGame = (function () {
 
     if (el.btnFoodGuide) el.btnFoodGuide.title = I18N.t('btnFoodGuide');
     if (el.btnRules) el.btnRules.title = I18N.t('btnRules');
+    if (el.btnPromoVideo) el.btnPromoVideo.title = I18N.t('btnPromoVideo');
     if (el.btnNewGame) el.btnNewGame.title = I18N.t('btnNewGame');
 
     syncLangButtons();
@@ -367,6 +371,20 @@ window.NightMarketGame = (function () {
       if (window.SOUND) window.SOUND.click();
       openFoodGuideModal();
     });
+
+    if (el.btnPromoVideo) {
+      el.btnPromoVideo.addEventListener('click', () => {
+        if (window.SOUND) window.SOUND.click();
+        openPromoVideoModal();
+      });
+    }
+
+    if (el.btnStartPromo) {
+      el.btnStartPromo.addEventListener('click', () => {
+        if (window.SOUND) window.SOUND.click();
+        openPromoVideoModal();
+      });
+    }
 
     // 中 / 英 / 韓可疊加複選按鈕
     document.querySelectorAll('[data-lang-toggle]').forEach((btn) => {
@@ -2171,6 +2189,40 @@ window.NightMarketGame = (function () {
     if (window.SOUND) window.SOUND.click();
     el.photoLightbox.classList.add('hidden');
     el.photoLightbox.innerHTML = '';
+  }
+
+  // ==================== 60 秒遊戲介紹影片播放彈窗 ====================
+  function openPromoVideoModal() {
+    // 播放介紹影片時自動暫停遊戲背景配樂，避免重疊干擾
+    const wasBgmPlaying = window.SOUND && window.SOUND.isBgmPlaying();
+    if (wasBgmPlaying) {
+      window.SOUND.stopBgm();
+      syncAudioButtons();
+    }
+
+    openModal({
+      title: `<i class="fa-solid fa-film"></i> <span>${I18N.tStack('promoModalTitle', null, { inline: true, sep: ' / ' })}</span>`,
+      body: `
+        <div class="promo-video-wrap">
+          <video id="promo-video-player" class="promo-video-el" src="yes-ginseng-3d-promo.mp4" controls autoplay playsinline preload="metadata"></video>
+        </div>
+      `,
+      buttons: [{ text: I18N.t('promoClose'), icon: 'fa-solid fa-xmark', className: 'btn-gold', value: true }],
+      wide: true,
+      closable: true,
+      modalType: 'video'
+    }).then(() => {
+      const v = document.getElementById('promo-video-player');
+      if (v) {
+        v.pause();
+        v.currentTime = 0;
+      }
+      // 關閉影片後自動恢復原本播放中的背景音樂
+      if (wasBgmPlaying && window.SOUND && !window.SOUND.isMuted()) {
+        window.SOUND.startBgm();
+        syncAudioButtons();
+      }
+    });
   }
 
   function openRulesModal() {
